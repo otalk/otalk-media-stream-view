@@ -3,16 +3,18 @@ var View = require('ampersand-view');
 
 module.exports = View.extend({
     template: [
-        '<div data-hook="media-box">',
+        '<div data-hook="media-box" class="media-outlined">',
         '  <audio data-hook="audio" autoplay></audio>',
         '  <video data-hook="video" autoplay muted></video>',
-        '  <div data-hook="volume"></div>',
-        '  <div data-hook="camera-name"></div>',
-        '  <div data-hook="mic-name"></div>',
-        '  <div data-hook="controls">',
-        '    <button data-hook="toggle-audio">Toggle Audio</button>',
-        '    <button data-hook="toggle-video">Toggle Video</button>',
-        '    <button data-hook="end-stream">End Stream</button>',
+        '  <div class="media-info">',
+        '    <div data-hook="volume"></div>',
+        '    <div data-hook="camera-name"></div>',
+        '    <div data-hook="mic-name"></div>',
+        '  </div>',
+        '  <div data-hook="controls" class="button-group">',
+        '    <button class="button audio-toggle"  data-hook="toggle-audio">Toggle Audio</button>',
+        '    <button class="button video-toggle" data-hook="toggle-video">Toggle Video</button>',
+        '    <button class="button end-stream" data-hook="end-stream">End Stream</button>',
         '  </div>',
         '</div>'
     ].join(''),
@@ -23,8 +25,12 @@ module.exports = View.extend({
 
     derived: {
         volumeBucket: {
-            deps: ['model.volume'],
+            deps: ['model.volume', 'model.audioPaused', 'model.hasAudio'],
             fn: function () {
+                if (this.model.audioPaused || !this.model.hasAudio) {
+                    return 'muted';
+                }
+
                 var vol = this.model.volume;
                 if (vol > -25) {
                     return 'high';
@@ -34,6 +40,18 @@ module.exports = View.extend({
                 }
                 return 'low';
             }
+        },
+        showCameraInfo: {
+            deps: ['model.isLocal', 'model.hasVideo'],
+            fn: function () {
+                return this.model.isLocal && this.model.hasVideo;
+            }
+        },
+        showMicInfo: {
+            deps: ['model.isLocal', 'model.hasAudio'],
+            fn: function () {
+                return this.model.isLocal && this.model.hasAudio;
+            }
         }
     },
 
@@ -41,6 +59,14 @@ module.exports = View.extend({
         volumeBucket: {
             type: 'class',
             hook: 'volume'
+        },
+        showCameraInfo: {
+            type: 'toggle',
+            hook: 'camera-name'
+        },
+        showMicInfo: {
+            type: 'toggle',
+            hook: 'mic-name'
         },
         'model.videoURL': {
             type: 'attribute',
@@ -64,22 +90,45 @@ module.exports = View.extend({
             type: 'booleanClass',
             name: 'video-paused'
         },
-        'model.isVideo': {
-            type: 'booleanClass',
-            name: 'video'
-        },
         'model.isAudio': {
             type: 'booleanClass',
             name: 'audio-only'
         },
+        'model.hasVideo': [
+            {
+                type: 'booleanClass',
+                name: 'video'
+            },
+            {
+                type: 'toggle',
+                hook: 'toggle-video'
+            }
+        ],
+        'model.hasAudio': [
+            {
+                type: 'booleanClass',
+                name: 'audio'
+            },
+            {
+                type: 'toggle',
+                hook: 'toggle-audio'
+            }
+        ],
         'model.isScreen': {
             type: 'booleanClass',
             name: 'screen'
         },
-        'model.isLocal': {
-            type: 'booleanClass',
-            name: 'local'
-        },
+        'model.isLocal': [
+            {
+                type: 'booleanClass',
+                name: 'local'
+            },
+            {
+                type: 'booleanAttribute',
+                name: 'muted',
+                hook: 'audio'
+            }
+        ],
         'model.isRemote': {
             type: 'booleanClass',
             name: 'remote'
