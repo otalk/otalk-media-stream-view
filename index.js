@@ -2,10 +2,13 @@ var View = require('ampersand-view');
 
 
 module.exports = View.extend({
+    autoRender: true,
+
     template: [
         '<div data-hook="media-box" class="media-outlined">',
         '  <audio data-hook="audio" autoplay></audio>',
-        '  <video data-hook="video" autoplay muted></video>',
+        '  <video data-hook="video-lowres" autoplay muted></video>',
+        '  <video data-hook="video-highres" muted></video>',
         '  <div class="media-info">',
         '    <div data-hook="volume"></div>',
         '    <div data-hook="camera-name"></div>',
@@ -18,10 +21,6 @@ module.exports = View.extend({
         '  </div>',
         '</div>'
     ].join(''),
-
-    props: {
-        width: 'number'
-    },
 
     derived: {
         volumeBucket: {
@@ -68,10 +67,20 @@ module.exports = View.extend({
             type: 'toggle',
             hook: 'mic-name'
         },
-        'model.videoURL': {
+        'model.lowResVideoURL': {
             type: 'attribute',
             name: 'src',
-            hook: 'video'
+            hook: 'video-lowres'
+        },
+        'model.highResVideoURL': {
+            type: 'attribute',
+            name: 'src',
+            hook: 'video-highres'
+        },
+        'model.highResVideoActive': {
+            type: 'toggle',
+            yes: '[data-hook~=video-highres]',
+            no: '[data-hook~=video-lowres]'
         },
         'model.audioURL': {
             type: 'attribute',
@@ -161,17 +170,61 @@ module.exports = View.extend({
         'click [data-hook~=end-stream]': 'endStream'
     },
 
-    initialize: function () {
-        this.bind('change:width', this.fitMedia, this);
-        this.fitMedia(this.width);
-    },
-
     render: function () {
         this.renderWithTemplate();
-    },
 
-    fitMedia: function () {
-        this.model.fit(this.width);
+        this.cacheElements({
+            audio: '[data-hook~=audio]',
+            lowResVideo: '[data-hook~=video-lowres]',
+            highResVideo: '[data-hook~=video-highres]'
+        });
+
+        this.audio.oncontextmenu = function (e) {
+            e.preventDefault();
+        };
+
+        this.lowResVideo.oncontextmenu = function (e) {
+            e.preventDefault();
+        };
+
+        this.highResVideo.oncontextmenu = function (e) {
+            e.preventDefault();
+        };
+
+        this.listenTo(this.model, 'change:audioPaused', function () {
+            if (this.model.isLocal) {
+                return;
+            }
+
+            if (this.model.audioPaused) {
+                this.audio.pause();
+            } else {
+                this.audio.play();
+            }
+        });
+        
+        this.listenTo(this.model, 'change:videoPaused', function () {
+            if (this.model.videoPaused) {
+                this.lowResVideo.pause();
+                this.highResVideo.pause();
+            } else {
+                if (this.model.highResVideoActive) {
+                    this.highResVideo.play();
+                } else {
+                    this.lowResVideo.play();
+                }
+            }
+        });
+
+        this.listenTo(this.model, 'change:highResVideoActive', function () {
+            if (this.model.highResVideoActive) {
+                this.lowResVideo.pause();
+                this.highResVideo.play();
+            } else {
+                this.highResVideo.pause();
+                this.lowResVideo.play();
+            }
+        });
     },
 
     toggleAudio: function () {
