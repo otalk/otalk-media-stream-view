@@ -51,6 +51,12 @@ module.exports = View.extend({
             fn: function () {
                 return this.model.isLocal && this.model.hasAudio;
             }
+        },
+        highResVideoURL: {
+            deps: ['model.highResVideoAvailable', 'model.highResVideoURL'],
+            fn: function () {
+                return this.model.highResVideoAvailable && this.model.highResVideoURL;
+            }
         }
     },
 
@@ -67,15 +73,15 @@ module.exports = View.extend({
             type: 'toggle',
             hook: 'mic-name'
         },
+        highResVideoURL: {
+            type: 'attribute',
+            name: 'src',
+            hook: 'video-highres'
+        },
         'model.lowResVideoURL': {
             type: 'attribute',
             name: 'src',
             hook: 'video-lowres'
-        },
-        'model.highResVideoURL': {
-            type: 'attribute',
-            name: 'src',
-            hook: 'video-highres'
         },
         'model.highResVideoActive': {
             type: 'toggle',
