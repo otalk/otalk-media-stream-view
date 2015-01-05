@@ -8,7 +8,7 @@ module.exports = View.extend({
         '<div data-hook="media-box" class="media-outlined">',
         '  <audio data-hook="audio" autoplay></audio>',
         '  <video data-hook="video-lowres" autoplay muted></video>',
-        '  <video data-hook="video-highres" muted></video>',
+        '  <video data-hook="video-highres" autoplay muted></video>',
         '  <div class="media-info">',
         '    <div data-hook="volume"></div>',
         '    <div data-hook="camera-name"></div>',
@@ -51,12 +51,6 @@ module.exports = View.extend({
             fn: function () {
                 return this.model.isLocal && this.model.hasAudio;
             }
-        },
-        highResVideoURL: {
-            deps: ['model.highResVideoAvailable', 'model.highResVideoURL'],
-            fn: function () {
-                return this.model.highResVideoAvailable && this.model.highResVideoURL;
-            }
         }
     },
 
@@ -73,7 +67,7 @@ module.exports = View.extend({
             type: 'toggle',
             hook: 'mic-name'
         },
-        highResVideoURL: {
+        'model.highResVideoURL': {
             type: 'attribute',
             name: 'src',
             hook: 'video-highres'
@@ -214,11 +208,8 @@ module.exports = View.extend({
                 this.lowResVideo.pause();
                 this.highResVideo.pause();
             } else {
-                if (this.model.highResVideoActive) {
-                    this.highResVideo.play();
-                } else {
-                    this.lowResVideo.play();
-                }
+                this.highResVideo.play();
+                this.lowResVideo.play();
             }
         });
 
