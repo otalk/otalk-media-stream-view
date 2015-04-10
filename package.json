@@ -1,7 +1,7 @@
 {
   "name": "otalk-media-stream-view",
   "description": "View for audio/video boxes, with controls",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "author": "Lance Stout <lance@andyet.net>",
   "bugs": {
     "url": "https://github.com/otalk/otalk-media-stream-view/issues"
