@@ -179,9 +179,11 @@ module.exports = View.extend({
             highResVideo: '[data-hook~=video-highres]'
         });
 
-        this.audio.oncontextmenu = function (e) {
-            e.preventDefault();
-        };
+        if (this.audio) {
+            this.audio.oncontextmenu = function (e) {
+                e.preventDefault();
+            };
+        }
 
         this.lowResVideo.oncontextmenu = function (e) {
             e.preventDefault();
@@ -196,7 +198,7 @@ module.exports = View.extend({
                 return;
             }
 
-            if (this.model.audioPaused) {
+            if (this.audio && this.model.audioPaused) {
                 this.audio.pause();
             } else {
                 this.audio.play();
