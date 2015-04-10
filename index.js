@@ -198,10 +198,12 @@ module.exports = View.extend({
                 return;
             }
 
-            if (this.audio && this.model.audioPaused) {
-                this.audio.pause();
-            } else {
-                this.audio.play();
+            if (this.audio) {
+                if (this.model.audioPaused) {
+                    this.audio.pause();
+                } else {
+                    this.audio.play();
+                }
             }
         });
         
