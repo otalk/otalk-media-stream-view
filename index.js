@@ -1,20 +1,13 @@
 var View = require('ampersand-view');
+var attachMediaStream = require('attachmediastream');
 
 
 module.exports = View.extend({
-    autoRender: true,
-
     template: [
         '<div data-hook="media-box" class="media-outlined">',
         '  <audio data-hook="audio" autoplay></audio>',
-        '  <video data-hook="video-lowres" autoplay muted></video>',
-        '  <video data-hook="video-highres" autoplay muted></video>',
-        '  <div class="media-info">',
-        '    <div data-hook="volume"></div>',
-        '    <div data-hook="camera-name"></div>',
-        '    <div data-hook="mic-name"></div>',
-        '  </div>',
-        '  <div data-hook="controls" class="button-group">',
+        '  <video data-hook="video" autoplay muted></video>',
+        '  <div class="button-group">',
         '    <button class="button audio-toggle"  data-hook="toggle-audio">Toggle Audio</button>',
         '    <button class="button video-toggle" data-hook="toggle-video">Toggle Video</button>',
         '    <button class="button end-stream" data-hook="end-stream">End Stream</button>',
@@ -22,84 +15,41 @@ module.exports = View.extend({
         '</div>'
     ].join(''),
 
-    derived: {
-        volumeBucket: {
-            deps: ['model.volume', 'model.audioPaused', 'model.hasAudio'],
-            fn: function () {
-                if (this.model.audioPaused || !this.model.hasAudio) {
-                    return 'muted';
-                }
+    session: {
+        videoWidth: 'number',
+        videoHeight: 'number'
+    },
 
-                var vol = this.model.volume;
-                if (vol > -25) {
-                    return 'high';
-                }
-                if (vol > -50) {
-                    return 'medium';
-                }
-                return 'low';
-            }
-        },
-        showCameraInfo: {
-            deps: ['model.isLocal', 'model.hasVideo'],
+    derived: {
+        videoAspectRatio: {
+            deps: [ 'videoWidth', 'videoHeight' ],
             fn: function () {
-                return this.model.isLocal && this.model.hasVideo;
-            }
-        },
-        showMicInfo: {
-            deps: ['model.isLocal', 'model.hasAudio'],
-            fn: function () {
-                return this.model.isLocal && this.model.hasAudio;
+                if (this.videoWidth && this.videoHeight) {
+                    return this.videoWidth / this.videoHeight;
+                }
+                return 1;
             }
         }
     },
 
     bindings: {
-        volumeBucket: {
-            type: 'class',
-            hook: 'volume'
-        },
-        showCameraInfo: {
-            type: 'toggle',
-            hook: 'camera-name'
-        },
-        showMicInfo: {
-            type: 'toggle',
-            hook: 'mic-name'
-        },
-        'model.highResVideoURL': {
-            type: 'attribute',
-            name: 'src',
-            hook: 'video-highres'
-        },
-        'model.lowResVideoURL': {
-            type: 'attribute',
-            name: 'src',
-            hook: 'video-lowres'
-        },
-        'model.highResVideoActive': {
-            type: 'toggle',
-            yes: '[data-hook~=video-highres]',
-            no: '[data-hook~=video-lowres]'
-        },
-        'model.audioURL': {
-            type: 'attribute',
-            name: 'src',
-            hook: 'audio'
-        },
-        'model.volume': {
-            type: 'text',
-            hook: 'volume'
-        },
-        'model.audioPaused': {
+        'model.audioMuted': {
             type: 'booleanClass',
-            name: 'audio-paused'
+            name: 'audio-muted'
         },
-        'model.videoPaused': {
+        'model.videoMuted': {
             type: 'booleanClass',
-            name: 'video-paused'
+            name: 'video-muted'
         },
-        'model.isAudio': {
+        'model.remoteAudioMuted': {
+            type: 'booleanClass',
+            name: 'remote-audio-muted'
+        },
+        'model.remoteVideoMuted': {
+            type: 'booleanClass',
+            name: 'remote-video-muted'
+        },
+        'model.isAudioOnly': {
             type: 'booleanClass',
             name: 'audio-only'
         },
@@ -142,25 +92,17 @@ module.exports = View.extend({
             type: 'booleanClass',
             name: 'remote'
         },
-        'model.speaking': {
+        'model.isSpeaking': {
             type: 'booleanClass',
             name: 'speaking'
         },
-        'model.activeSpeaker': {
+        'model.isActiveSpeaker': {
             type: 'booleanClass',
             name: 'active-speaker'
         },
-        'model.focused': {
+        'model.isFocused': {
             type: 'booleanClass',
             name: 'focused'
-        },
-        'model.cameraName': {
-            type: 'text',
-            hook: 'camera-name'
-        },
-        'model.micName': {
-            type: 'text',
-            hook: 'mic-name'
         }
     },
 
@@ -171,77 +113,47 @@ module.exports = View.extend({
     },
 
     render: function () {
-        this.renderWithTemplate();
+        var self = this;
 
-        this.cacheElements({
+        self.renderWithTemplate();
+        self.cacheElements({
             audio: '[data-hook~=audio]',
-            lowResVideo: '[data-hook~=video-lowres]',
-            highResVideo: '[data-hook~=video-highres]'
+            video: '[data-hook~=video]'
         });
 
-        if (this.audio) {
-            this.audio.oncontextmenu = function (e) {
-                e.preventDefault();
-            };
+        if (self.audio && self.model.hasAudio) {
+            self.audio = attachMediaStream(self.model.stream, self.audio, {
+                audio: true,
+                autoplay: true,
+                disableContextMenu: true,
+                muted: self.model.audioMuted
+            });
         }
 
-        this.lowResVideo.oncontextmenu = function (e) {
-            e.preventDefault();
-        };
+        if (self.video && self.model.hasVideo) {
+            self.listenToAndRun(self.model, 'change:selectedVideoTrackId', function () {
+                var stream = self.model.createStreamForSelectedVideoTrack();
+                self.video = attachMediaStream(stream, self.video, {
+                    muted: true,
+                    autoplay: true,
+                    disableContextMenu: true,
+                    mirror: self.isLocal && !self.model.isScreen
+                });
+            });
 
-        this.highResVideo.oncontextmenu = function (e) {
-            e.preventDefault();
-        };
-
-        this.listenTo(this.model, 'change:audioPaused', function () {
-            if (this.model.isLocal) {
-                return;
-            }
-
-            if (this.audio) {
-                if (this.model.audioPaused) {
-                    this.audio.pause();
-                } else {
-                    this.audio.play();
-                }
-            }
-        });
-        
-        this.listenTo(this.model, 'change:videoPaused', function () {
-            if (this.model.videoPaused) {
-                this.lowResVideo.pause();
-                this.highResVideo.pause();
-            } else {
-                this.highResVideo.play();
-                this.lowResVideo.play();
-            }
-        });
-
-        this.listenTo(this.model, 'change:highResVideoActive', function () {
-            if (this.model.highResVideoActive) {
-                this.lowResVideo.pause();
-                this.highResVideo.play();
-            } else {
-                this.highResVideo.pause();
-                this.lowResVideo.play();
-            }
-        });
+            self.video.addEventListener('loadedmetadata', function () {
+                self.videoHeight = self.video.videoHeight;
+                self.videoWidth = self.video.videoWidth;
+            });
+        }
     },
 
     toggleAudio: function () {
-        if (!this.model.audioPaused) {
-            this.model.pauseAudio();
-        } else {
-            this.model.playAudio();
-        }
+        this.model.toggleAudio();
     },
 
     toggleVideo: function () {
-        if (!this.model.videoPaused) {
-            this.model.pauseVideo();
-        } else {
-            this.model.playVideo();
-        }
+        this.model.toggleVideo();
     },
 
     endStream: function () {
