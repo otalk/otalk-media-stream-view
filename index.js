@@ -16,6 +16,7 @@ module.exports = View.extend({
     ].join(''),
 
     session: {
+        videoReady: 'boolean',
         videoWidth: 'number',
         videoHeight: 'number'
     },
@@ -29,10 +30,27 @@ module.exports = View.extend({
                 }
                 return 1;
             }
+        },
+        videoOrientation: {
+            deps: [ 'videoWidth', 'videoHeight' ],
+            fn: function () {
+                if (this.videoWith >= this.videoHeight) {
+                    return 'landscape';
+                } else {
+                    return 'portrait';
+                }
+            }
         }
     },
 
     bindings: {
+        'videoReady': {
+            type: 'booleanClass',
+            name: 'video-ready'
+        },
+        'videoOrientation': {
+            type: 'class'
+        },
         'model.audioMuted': {
             type: 'booleanClass',
             name: 'audio-muted'
@@ -145,6 +163,12 @@ module.exports = View.extend({
                 self.videoHeight = self.video.videoHeight;
                 self.videoWidth = self.video.videoWidth;
             });
+
+            var handleVideoReady = function () {
+                self.videoReady = true;
+                self.video.removeEventListener('loadeddata', handleVideoReady);
+            };
+            self.video.addEventListener('loadeddata', handleVideoReady);
         }
     },
 
