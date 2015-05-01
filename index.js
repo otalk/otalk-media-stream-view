@@ -146,6 +146,10 @@ module.exports = View.extend({
                 disableContextMenu: true,
                 muted: self.model.audioMuted
             });
+
+            self.listenToAndRun('change:model.audioMuted', function () {
+                self.audio.muted = self.model.audioMuted;
+            });
         }
 
         if (self.video && self.model.hasVideo) {
@@ -169,6 +173,10 @@ module.exports = View.extend({
                 self.video.removeEventListener('loadeddata', handleVideoReady);
             };
             self.video.addEventListener('loadeddata', handleVideoReady);
+
+            self.listenToAndRun('change:model.videoMuted', function () {
+                self.video.muted = self.model.videoMuted;
+            });
         }
     },
 
