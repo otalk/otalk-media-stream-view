@@ -173,10 +173,6 @@ module.exports = View.extend({
                 self.video.removeEventListener('loadeddata', handleVideoReady);
             };
             self.video.addEventListener('loadeddata', handleVideoReady);
-
-            self.listenToAndRun(self.model, 'change:videoMuted', function () {
-                self.video.muted = self.model.videoMuted;
-            });
         }
     },
 
