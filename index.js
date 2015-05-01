@@ -147,7 +147,7 @@ module.exports = View.extend({
                 muted: self.model.audioMuted
             });
 
-            self.listenToAndRun('change:model.audioMuted', function () {
+            self.listenToAndRun(self.model, 'change:audioMuted', function () {
                 self.audio.muted = self.model.audioMuted;
             });
         }
@@ -174,7 +174,7 @@ module.exports = View.extend({
             };
             self.video.addEventListener('loadeddata', handleVideoReady);
 
-            self.listenToAndRun('change:model.videoMuted', function () {
+            self.listenToAndRun(self.model, 'change:videoMuted', function () {
                 self.video.muted = self.model.videoMuted;
             });
         }
